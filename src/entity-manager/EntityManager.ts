@@ -64,7 +64,7 @@ export class EntityManager {
     /**
      * Once created and then reused by en repositories.
      */
-    protected repositories: Repository<any>[] = [];
+    protected repositories = new Map<EntityTarget<any>, Repository<any>>();
 
     /**
      * Plain to object transformer used in create and merge operations.
@@ -914,13 +914,12 @@ export class EntityManager {
 
         // find already created repository instance and return it if found
         const metadata = this.connection.getMetadata(target);
-        const repository = this.repositories.find(repository => repository.metadata === metadata);
-        if (repository)
-            return repository;
+        const repoFromMap = this.repositories.get(target);
+        if (repoFromMap) return repoFromMap;
 
         // if repository was not found then create it, store its instance and return it
         const newRepository = new RepositoryFactory().create(this, metadata, this.queryRunner);
-        this.repositories.push(newRepository);
+        this.repositories.set(target, newRepository);
         return newRepository;
     }
 

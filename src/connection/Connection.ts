@@ -103,6 +103,12 @@ export class Connection {
     readonly entityMetadatas: EntityMetadata[] = [];
 
     /**
+     * All entity metadatas that are registered for this connection.
+     * This is a copy of #.entityMetadatas property -> used for more performant searches.
+     */
+    readonly entityMetadatasMap = new Map<EntityTarget<any>, EntityMetadata>();
+
+    /**
      * Used to work with query result cache.
      */
     readonly queryResultCache?: QueryResultCache;
@@ -483,6 +489,8 @@ export class Connection {
      * Finds exist entity metadata by the given entity class, target name or table name.
      */
     protected findMetadata(target: EntityTarget<any>): EntityMetadata|undefined {
+        const metadataFromMap = this.entityMetadatasMap.get(target);
+        if (metadataFromMap) return metadataFromMap;
         return this.entityMetadatas.find(metadata => {
             if (metadata.target === target)
                 return true;
@@ -515,7 +523,12 @@ export class Connection {
 
         // build entity metadatas
         const entityMetadatas = connectionMetadataBuilder.buildEntityMetadatas(this.options.entities || []);
-        ObjectUtils.assign(this, { entityMetadatas: entityMetadatas });
+        ObjectUtils.assign(this, {
+            entityMetadatas: entityMetadatas,
+            entityMetadatasMap: new Map(
+                entityMetadatas.map((metadata) => [metadata.target, metadata]),
+            ),
+        });
 
         // create migration instances
         const migrations = connectionMetadataBuilder.buildMigrations(this.options.migrations || []);
