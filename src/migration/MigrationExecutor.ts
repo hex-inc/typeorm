@@ -218,7 +218,7 @@ export class MigrationExecutor {
         // run all pending migrations in a sequence
         try {
             for (const migration of pendingMigrations) {
-                if (this.transaction === "each" && !queryRunner.isTransactionActive) {
+                if (this.transaction === "each" && (migration.instance == null || migration.instance.transaction !== false) && !queryRunner.isTransactionActive) {
                     await queryRunner.startTransaction();
                     transactionStartedByUs = true;
                 }
@@ -227,7 +227,7 @@ export class MigrationExecutor {
                     .then(async () => { // now when migration is executed we need to insert record about it into the database
                         await this.insertExecutedMigration(queryRunner, migration);
                         // commit transaction if we started it
-                        if (this.transaction === "each" && transactionStartedByUs)
+                        if (this.transaction === "each" && (migration.instance == null || migration.instance.transaction !== false) && transactionStartedByUs)
                             await queryRunner.commitTransaction();
                     })
                     .then(() => { // informative log about migration success

@@ -10,6 +10,13 @@ export interface MigrationInterface {
     name?: string;
 
     /**
+     * If true, run this migration inside of a transaction.
+     * 
+     * @default true
+     */
+    transaction?: boolean;
+
+    /**
      * Run the migrations.
      */
     up(queryRunner: QueryRunner): Promise<any>;
