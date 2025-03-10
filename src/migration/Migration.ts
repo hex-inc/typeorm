@@ -26,6 +26,13 @@ export class Migration {
     name: string;
 
     /**
+     * If true, run this migration inside of a transaction.
+     * 
+     * @default true
+     */
+    transaction?: boolean;
+
+    /**
      * Migration instance that needs to be run.
      */
     instance?: MigrationInterface;
