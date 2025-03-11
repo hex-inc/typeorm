@@ -52,6 +52,11 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
      */
     protected releaseCallback: Function;
 
+    /**
+     * HEX: metadata that gets included in a comment whenever a query is run
+     */
+    protected metadata?: Record<string, unknown>;
+
     // -------------------------------------------------------------------------
     // Constructor
     // -------------------------------------------------------------------------
@@ -62,6 +67,10 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         this.connection = driver.connection;
         this.mode = mode;
         this.broadcaster = new Broadcaster(this);
+    }
+
+    setMetadata(metadata: Record<string, unknown>): void {
+        this.metadata = metadata;
     }
 
     // -------------------------------------------------------------------------
@@ -197,9 +206,20 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
     /**
      * Executes a given SQL query.
      */
-    async query(query: string, parameters?: any[]): Promise<any> {
+    async query(rawQuery: string, parameters?: any[]): Promise<any> {
         if (this.isReleased)
             throw new QueryRunnerAlreadyReleasedError();
+
+        let query: string;
+        if(this.metadata != null) {
+            const serializedMetadata = Object.entries(this.metadata).map(([key, value]) => `${key}=${JSON.stringify(value)}`).join(",");
+            const sanitizedSerializedMetadata = serializedMetadata.replace(/\*\//g, "");
+
+            query = `/* ${sanitizedSerializedMetadata} */ ${rawQuery}`;
+        } else {
+            query = rawQuery;
+        }
+
 
         const databaseConnection = await this.connect();
 
