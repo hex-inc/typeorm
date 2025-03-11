@@ -26,7 +26,7 @@ export class Migration {
     name: string;
 
     /**
-     * If true, run this migration inside of a transaction.
+     * HEX: If true, run this migration inside of a transaction.
      * 
      * @default true
      */

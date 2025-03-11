@@ -175,4 +175,5 @@ export interface BaseConnectionOptions {
 
     };
 
+    readonly getMetadata?: () => Record<string, unknown>;
 }
