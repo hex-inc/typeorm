@@ -175,5 +175,8 @@ export interface BaseConnectionOptions {
 
     };
 
-    readonly getMetadata?: () => Record<string, unknown>;
+    /**
+     * HEX: dynamically get metadata for use in query tagging
+     */
+    readonly getMetadata?: () => Record<string, string> | null;
 }
