@@ -400,7 +400,7 @@ export interface QueryRunner {
     executeMemoryDownSql(): Promise<void>;
 
     /**
-     * HEX: Set metadata for this query runner
+     * HEX: Set metadata getter for this query runner
      */
-    setMetadata?: (metadata: Record<string, unknown>) => void;
+    setGetMetadata?: (getMetadata: () => Record<string, unknown> | null) => void;
 }

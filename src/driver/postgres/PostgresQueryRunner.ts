@@ -53,9 +53,9 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
     protected releaseCallback: Function;
 
     /**
-     * HEX: metadata that gets included in a comment whenever a query is run
+     * HEX: get metadata that is included in a comment whenever a query is run
      */
-    protected metadata?: Record<string, string>;
+    protected getMetadata?: () => Record<string, string> | null;
 
     // -------------------------------------------------------------------------
     // Constructor
@@ -69,8 +69,8 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         this.broadcaster = new Broadcaster(this);
     }
 
-    setMetadata(metadata: Record<string, string>): void {
-        this.metadata = metadata;
+    setGetMetadata(getMetadata: () => Record<string, string> | null): void {
+        this.getMetadata = getMetadata;
     }
 
     // -------------------------------------------------------------------------
@@ -210,16 +210,16 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         if (this.isReleased)
             throw new QueryRunnerAlreadyReleasedError();
 
-        let query: string;
-        if(this.metadata != null && Object.keys(this.metadata).length > 0) {
-            const serializedMetadata = Object.entries(this.metadata).map(([key, value]) => `${key}='${value}'`).join(",");
-            const sanitizedSerializedMetadata = serializedMetadata.replace(/\*\//g, "");
+        let query: string = rawQuery;
+        if (this.getMetadata != null) {
+            const metadata = this.getMetadata();
+            if (metadata != null && Object.keys(metadata).length > 0) {
+                const serializedMetadata = Object.entries(metadata).map(([key, value]) => `${key}='${value}'`).join(",");
+                const sanitizedSerializedMetadata = serializedMetadata.replace(/\*\//g, "");
 
-            query = `/* ${sanitizedSerializedMetadata} */ ${rawQuery}`;
-        } else {
-            query = rawQuery;
+                query = `/* ${sanitizedSerializedMetadata} */ ${rawQuery}`;
+            }
         }
-
 
         const databaseConnection = await this.connect();
 

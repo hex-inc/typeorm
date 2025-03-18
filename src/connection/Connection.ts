@@ -449,11 +449,8 @@ export class Connection {
      */
     createQueryRunner(mode: ReplicationMode = "master"): QueryRunner {
         const queryRunner = this.driver.createQueryRunner(mode);
-        if (queryRunner.setMetadata != null && this.options.getMetadata != null) {
-            const metadata = this.options.getMetadata();
-            if (metadata != null) {
-                queryRunner.setMetadata(metadata);
-            }
+        if (queryRunner.setGetMetadata != null && this.options.getMetadata != null) {
+            queryRunner.setGetMetadata(this.options.getMetadata);
         }
         const manager = this.createEntityManager(queryRunner);
         Object.assign(queryRunner, { manager: manager });
