@@ -8,8 +8,6 @@ The `master` branch tracks the original repository's `master` branch.
 
 ### Development
 
-docker
-
 This repo uses `npm` as the package manager.
 You need at least version `10.8.2`.
 
