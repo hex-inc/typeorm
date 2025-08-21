@@ -89,65 +89,60 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
             return this.databaseConnectionPromise;
 
         if (this.mode === "slave" && this.driver.isReplicated)  {
-            this.databaseConnectionPromise = this.driver
-                .obtainSlaveConnection()
-                .then(([connection, release]: any[]) => {
-                    if (this.isReleased) {
-                        release();
-                        return undefined;
-                    }
+            this.databaseConnectionPromise = this.driver.obtainSlaveConnection().then(([connection, release]: any[]) => {
+                if (this.isReleased) {
+                    release();
+                    return undefined;
+                }
 
-                    this.driver.connectedQueryRunners.push(this);
-                    this.databaseConnection = connection;
+                this.driver.connectedQueryRunners.push(this);
+                this.databaseConnection = connection;
 
-                    const onErrorCallback = () => this.release();
-                    this.releaseCallback = () => {
-                        this.databaseConnection.removeListener(
-                            "error",
-                            onErrorCallback
-                        );
-                        release();
+                const onErrorCallback = () => this.release();
+                this.releaseCallback = () => {
+                    this.databaseConnection.removeListener(
+                        "error",
+                        onErrorCallback
+                    );
+                    release();
 
-                        const index =
-                            this.driver.connectedQueryRunners.indexOf(this);
-                        if (index !== -1)
-                            this.driver.connectedQueryRunners.splice(index);
-                    };
-                    this.databaseConnection.on("error", onErrorCallback);
+                    const index =
+                        this.driver.connectedQueryRunners.indexOf(this);
+                    if (index !== -1)
+                        this.driver.connectedQueryRunners.splice(index);
+                };
+                this.databaseConnection.on("error", onErrorCallback);
 
-                    return this.databaseConnection;
-                });
+                return this.databaseConnection;
+            });
 
-        } else {
-            // master
-            this.databaseConnectionPromise = this.driver
-                .obtainMasterConnection()
-                .then(([connection, release]: any[]) => {
-                    if (this.isReleased) {
-                        release();
-                        return undefined;
-                    }
+        } else { // master
+            this.databaseConnectionPromise = this.driver.obtainMasterConnection().then(([connection, release]: any[]) => {
+                if (this.isReleased) {
+                    release();
+                    return undefined;
+                }
 
-                    this.driver.connectedQueryRunners.push(this);
-                    this.databaseConnection = connection;
+                this.driver.connectedQueryRunners.push(this);
+                this.databaseConnection = connection;
 
-                    const onErrorCallback = () => this.release();
-                    this.databaseConnection.on("error", onErrorCallback);
-                    this.releaseCallback = () => {
-                        this.databaseConnection.removeListener(
-                            "error",
-                            onErrorCallback
-                        );
-                        release();
+                const onErrorCallback = () => this.release();
+                this.databaseConnection.on("error", onErrorCallback);
+                this.releaseCallback = () => {
+                    this.databaseConnection.removeListener(
+                        "error",
+                        onErrorCallback
+                    );
+                    release();
 
-                        const index =
-                            this.driver.connectedQueryRunners.indexOf(this);
-                        if (index !== -1)
-                            this.driver.connectedQueryRunners.splice(index);
-                    };
+                    const index =
+                        this.driver.connectedQueryRunners.indexOf(this);
+                    if (index !== -1)
+                        this.driver.connectedQueryRunners.splice(index);
+                };
 
-                    return this.databaseConnection;
-                });
+                return this.databaseConnection;
+            });
         }
 
         return this.databaseConnectionPromise;
@@ -163,9 +158,11 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         }
 
         this.isReleased = true;
-        if (this.releaseCallback) {
+        if (this.releaseCallback)
             this.releaseCallback();
-        }
+
+        const index = this.driver.connectedQueryRunners.indexOf(this);
+        if (index !== -1) this.driver.connectedQueryRunners.splice(index);
 
         return Promise.resolve();
     }
