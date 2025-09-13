@@ -118,6 +118,7 @@
     "buffer": "^5.5.0",
     "chalk": "^4.1.0",
     "cli-highlight": "^2.1.10",
+    "dd-trace": "^5",
     "debug": "^4.1.1",
     "dotenv": "^8.2.0",
     "glob": "^7.1.6",
