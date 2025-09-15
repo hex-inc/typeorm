@@ -1,3 +1,5 @@
+import tracer from "dd-trace";
+
 import {Connection} from "../connection/Connection";
 import {FindManyOptions} from "../find-options/FindManyOptions";
 import {EntityTarget} from "../common/EntityTarget";
@@ -35,6 +37,7 @@ import {DeleteResult} from "../query-builder/result/DeleteResult";
 import {FindConditions} from "../find-options/FindConditions";
 import {IsolationLevel} from "../driver/types/IsolationLevel";
 import {ObjectUtils} from "../util/ObjectUtils";
+import {methodProxy} from "../util/MethodProxy";
 
 /**
  * Entity manager supposed to work with any entity, automatically find its repository and call its methods,
@@ -978,7 +981,11 @@ export class EntityManager {
             (entityRepositoryInstance as any)["metadata"] = entityMetadata;
         }
 
-        return entityRepositoryInstance;
+        return methodProxy(customRepository as any, entityRepositoryInstance, (name, args, originalMethod) => {
+            return tracer.trace(`${customRepository.name}.${name}`, () => {
+                return originalMethod.apply(entityRepositoryInstance, args);
+            });
+        });
     }
 
     /**
