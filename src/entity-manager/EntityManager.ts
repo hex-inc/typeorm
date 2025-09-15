@@ -36,6 +36,15 @@ import {FindConditions} from "../find-options/FindConditions";
 import {IsolationLevel} from "../driver/types/IsolationLevel";
 import {ObjectUtils} from "../util/ObjectUtils";
 
+// HACK: This is used for custom repository tracing/instrumentation, rather
+// than implementing this instrumentation in this fork, because this project's
+// build is ancient and decrepit.
+type CustomRepositoryWrapper = (repositoryClass: any, repositoryInstance: any) => any;
+let wrapCustomRepository: CustomRepositoryWrapper | undefined;
+export function setCustomRepositoryWrapper(wrapper: CustomRepositoryWrapper) {
+    wrapCustomRepository = wrapper;
+}
+
 /**
  * Entity manager supposed to work with any entity, automatically find its repository and call its methods,
  * whatever entity type are you passing.
@@ -978,7 +987,11 @@ export class EntityManager {
             (entityRepositoryInstance as any)["metadata"] = entityMetadata;
         }
 
-        return entityRepositoryInstance;
+        if (wrapCustomRepository) {
+            return wrapCustomRepository(customRepository, entityRepositoryInstance);
+        } else {
+            return entityRepositoryInstance;
+        }
     }
 
     /**
