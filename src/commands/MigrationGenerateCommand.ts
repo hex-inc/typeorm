@@ -6,7 +6,6 @@ import {camelCase} from "../util/StringUtils";
 import * as yargs from "yargs";
 import {AuroraDataApiDriver} from "../driver/aurora-data-api/AuroraDataApiDriver";
 import chalk from "chalk";
-import { format } from "@sqltools/formatter/lib/sqlFormatter";
 
 /**
  * Generates a new migration file with sql needs to be executed to update schema.
@@ -33,12 +32,6 @@ export class MigrationGenerateCommand implements yargs.CommandModule {
             .option("d", {
                 alias: "dir",
                 describe: "Directory where migration should be created."
-            })
-            .option("p", {
-                alias: "pretty",
-                type: "boolean",
-                default: false,
-                describe: "Pretty-print generated SQL",
             })
             .option("f", {
                 alias: "config",
@@ -86,15 +79,6 @@ export class MigrationGenerateCommand implements yargs.CommandModule {
             const connection = await createConnection(connectionOptions);
             try {
                 const sqlInMemory = await connection.driver.createSchemaBuilder().log();
-
-                if (args.pretty) {
-                    sqlInMemory.upQueries.forEach(upQuery => {
-                        upQuery.query = MigrationGenerateCommand.prettifyQuery(upQuery.query);
-                    });
-                    sqlInMemory.downQueries.forEach(downQuery => {
-                        downQuery.query = MigrationGenerateCommand.prettifyQuery(downQuery.query);
-                    });
-                }
 
                 // mysql is exceptional here because it uses ` character in to escape names in queries, that's why for mysql
                 // we are using simple quoted string instead of template string syntax
@@ -176,13 +160,5 @@ ${downSqls.join(`
 
 }
 `;
-    }
-
-    /**
-     *
-     */
-    protected static prettifyQuery(query: string) {
-        const formattedQuery = format(query, { indent: "    " });
-        return "\n" + formattedQuery.replace(/^/gm, "            ") + "\n        ";
     }
 }
