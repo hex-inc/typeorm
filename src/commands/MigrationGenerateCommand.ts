@@ -44,12 +44,6 @@ export class MigrationGenerateCommand implements yargs.CommandModule {
                 alias: "config",
                 default: "ormconfig",
                 describe: "Name of the file with connection configuration."
-            })
-            .option("o", {
-                alias: "outputJs",
-                type: "boolean",
-                default: false,
-                describe: "Generate a migration file on Javascript instead of Typescript",
             });
     }
 
@@ -59,8 +53,7 @@ export class MigrationGenerateCommand implements yargs.CommandModule {
         }
 
         const timestamp = new Date().getTime();
-        const extension = args.outputJs ? ".js" : ".ts";
-        const filename = timestamp + "-" + args.name + extension;
+        const filename = timestamp + "-" + args.name + ".ts";
         let directory = args.dir;
 
         // if directory is not set then try to open tsconfig and find default path there
@@ -126,9 +119,7 @@ export class MigrationGenerateCommand implements yargs.CommandModule {
 
             if (upSqls.length) {
                 if (args.name) {
-                    const fileContent = args.outputJs ?
-                        MigrationGenerateCommand.getJavascriptTemplate(args.name as any, timestamp, upSqls, downSqls.reverse()) :
-                        MigrationGenerateCommand.getTemplate(args.name as any, timestamp, upSqls, downSqls.reverse());
+                    const fileContent = MigrationGenerateCommand.getTemplate(args.name as any, timestamp, upSqls, downSqls.reverse());
                     const path = process.cwd() + "/" + (directory ? (directory + "/") : "") + filename;
                     await CommandUtils.createFile(path, fileContent);
 
@@ -183,30 +174,6 @@ ${downSqls.join(`
 `)}
     }
 
-}
-`;
-    }
-
-    /**
-     * Gets contents of the migration file in Javascript.
-     */
-    protected static getJavascriptTemplate(name: string, timestamp: number, upSqls: string[], downSqls: string[]): string {
-        const migrationName = `${camelCase(name, true)}${timestamp}`;
-
-        return `const { MigrationInterface, QueryRunner } = require("typeorm");
-
-module.exports = class ${migrationName} {
-    name = '${migrationName}'
-
-    async up(queryRunner) {
-${upSqls.join(`
-`)}
-    }
-
-    async down(queryRunner) {
-${downSqls.join(`
-`)}
-    }
 }
 `;
     }
