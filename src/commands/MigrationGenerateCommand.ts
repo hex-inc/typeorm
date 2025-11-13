@@ -1,10 +1,10 @@
 import {ConnectionOptionsReader} from "../connection/ConnectionOptionsReader";
 import {CommandUtils} from "./CommandUtils";
 import {createConnection} from "../index";
-import {MysqlDriver} from "../driver/mysql/MysqlDriver";
+import {Query} from "../driver/Query";
+import {SqlInMemory} from "../driver/SqlInMemory";
 import {camelCase} from "../util/StringUtils";
 import * as yargs from "yargs";
-import {AuroraDataApiDriver} from "../driver/aurora-data-api/AuroraDataApiDriver";
 import chalk from "chalk";
 
 /**
@@ -74,36 +74,23 @@ export class MigrationGenerateCommand implements yargs.CommandModule {
                 logging: false
             });
 
-            const upSqls: string[] = [], downSqls: string[] = [];
-
             const connection = await createConnection(connectionOptions);
+            let sqlInMemory: SqlInMemory;
             try {
-                const sqlInMemory = await connection.driver.createSchemaBuilder().log();
-
-                // mysql is exceptional here because it uses ` character in to escape names in queries, that's why for mysql
-                // we are using simple quoted string instead of template string syntax
-                if (connection.driver instanceof MysqlDriver || connection.driver instanceof AuroraDataApiDriver) {
-                    sqlInMemory.upQueries.forEach(upQuery => {
-                        upSqls.push("        await queryRunner.query(\"" + upQuery.query.replace(new RegExp(`"`, "g"), `\\"`) + "\"" + MigrationGenerateCommand.queryParams(upQuery.parameters) + ");");
-                    });
-                    sqlInMemory.downQueries.forEach(downQuery => {
-                        downSqls.push("        await queryRunner.query(\"" + downQuery.query.replace(new RegExp(`"`, "g"), `\\"`) + "\"" + MigrationGenerateCommand.queryParams(downQuery.parameters) + ");");
-                    });
-                } else {
-                    sqlInMemory.upQueries.forEach(upQuery => {
-                        upSqls.push("        await queryRunner.query(`" + upQuery.query.replace(new RegExp("`", "g"), "\\`") + "`" + MigrationGenerateCommand.queryParams(upQuery.parameters) + ");");
-                    });
-                    sqlInMemory.downQueries.forEach(downQuery => {
-                        downSqls.push("        await queryRunner.query(`" + downQuery.query.replace(new RegExp("`", "g"), "\\`") + "`" + MigrationGenerateCommand.queryParams(downQuery.parameters) + ");");
-                    });
-                }
+                sqlInMemory = await connection.driver.createSchemaBuilder().log();
             } finally {
                 await connection.close();
             }
 
-            if (upSqls.length) {
+            if (sqlInMemory.upQueries.length) {
                 if (args.name) {
-                    const fileContent = MigrationGenerateCommand.getTemplate(args.name as any, timestamp, upSqls, downSqls.reverse());
+                    const migrationName = camelCase(args.name as any, true) + timestamp;
+                    const templater = connection.options.migrationTemplater || defaultMigrationTemplater;
+                    const fileContent = templater({
+                        name: migrationName,
+                        upQueries: sqlInMemory.upQueries,
+                        downQueries: sqlInMemory.downQueries,
+                    });
                     const path = process.cwd() + "/" + (directory ? (directory + "/") : "") + filename;
                     await CommandUtils.createFile(path, fileContent);
 
@@ -121,44 +108,29 @@ export class MigrationGenerateCommand implements yargs.CommandModule {
             process.exit(1);
         }
     }
+}
 
-    // -------------------------------------------------------------------------
-    // Protected Static Methods
-    // -------------------------------------------------------------------------
+export interface MigrationTemplateArgs {
+    name: string;
+    upQueries: Query[];
+    downQueries: Query[];
+}
+export type MigrationTemplater = (args: MigrationTemplateArgs) => string;
+export function defaultMigrationTemplater({ name, upQueries, downQueries }: MigrationTemplateArgs): string {
+    const templateQuery = ({ query, parameters }: Query): string => 
+        "        await queryRunner.query(`" + query.replace(new RegExp("`", "g"), "\\`") + "`" + (parameters && parameters.length ? `, ${JSON.stringify(parameters)}` : "") + ");";
+    return `import { MigrationInterface, QueryRunner } from "typeorm";
 
-    /**
-     * Formats query parameters for migration queries if parameters actually exist
-     */
-    protected static queryParams(parameters: any[] | undefined): string {
-      if (!parameters || !parameters.length) {
-        return "";
-      }
-
-      return `, ${JSON.stringify(parameters)}`;
-    }
-
-    /**
-     * Gets contents of the migration file.
-     */
-    protected static getTemplate(name: string, timestamp: number, upSqls: string[], downSqls: string[]): string {
-        const migrationName = `${camelCase(name, true)}${timestamp}`;
-
-        return `import {MigrationInterface, QueryRunner} from "typeorm";
-
-export class ${migrationName} implements MigrationInterface {
-    name = '${migrationName}'
+export class ${name} implements MigrationInterface {
+    name = '${name}'
 
     public async up(queryRunner: QueryRunner): Promise<void> {
-${upSqls.join(`
-`)}
+${upQueries.map(templateQuery).join("\n")}
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-${downSqls.join(`
-`)}
+${downQueries.map(templateQuery).join("\n")}
     }
-
 }
 `;
-    }
 }

@@ -179,4 +179,9 @@ export interface BaseConnectionOptions {
      * HEX: dynamically get metadata for use in query tagging
      */
     readonly getMetadata?: () => Record<string, string> | null;
+
+    /**
+     * HEX: allow customization of migration templating
+     */
+    readonly migrationTemplater?: (args: { name: string, upQueries: { query: string, parameters?: any[] }[], downQueries: { query: string, parameters?: any[] }[] }) => string;
 }
