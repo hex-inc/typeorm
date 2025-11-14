@@ -86,7 +86,7 @@ export class MigrationGenerateCommand implements yargs.CommandModule {
                 if (args.name) {
                     const migrationName = camelCase(args.name as any, true) + timestamp;
                     const templater = connection.options.migrationTemplater || defaultMigrationTemplater;
-                    const fileContent = templater({
+                    const fileContent = await templater({
                         name: migrationName,
                         upQueries: sqlInMemory.upQueries,
                         downQueries: sqlInMemory.downQueries,
@@ -116,7 +116,7 @@ export interface MigrationTemplateArgs {
     downQueries: Query[];
 }
 export type MigrationTemplater = (args: MigrationTemplateArgs) => string;
-export function defaultMigrationTemplater({ name, upQueries, downQueries }: MigrationTemplateArgs): string {
+export async function defaultMigrationTemplater({ name, upQueries, downQueries }: MigrationTemplateArgs): Promise<string> {
     const templateQuery = ({ query, parameters }: Query): string => 
         "        await queryRunner.query(`" + query.replace(new RegExp("`", "g"), "\\`") + "`" + (parameters && parameters.length ? `, ${JSON.stringify(parameters)}` : "") + ");";
     return `import { MigrationInterface, QueryRunner } from "typeorm";

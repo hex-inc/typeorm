@@ -183,5 +183,5 @@ export interface BaseConnectionOptions {
     /**
      * HEX: allow customization of migration templating
      */
-    readonly migrationTemplater?: (args: { name: string, upQueries: { query: string, parameters?: any[] }[], downQueries: { query: string, parameters?: any[] }[] }) => string;
+    readonly migrationTemplater?: (args: { name: string, upQueries: { query: string, parameters?: any[] }[], downQueries: { query: string, parameters?: any[] }[] }) => Promise<string>;
 }
