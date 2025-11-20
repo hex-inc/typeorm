@@ -89,7 +89,7 @@ export class MigrationGenerateCommand implements yargs.CommandModule {
                     const fileContent = await templater({
                         name: migrationName,
                         upQueries: sqlInMemory.upQueries,
-                        downQueries: sqlInMemory.downQueries,
+                        downQueries: sqlInMemory.downQueries.reverse(),
                     });
                     const path = process.cwd() + "/" + (directory ? (directory + "/") : "") + filename;
                     await CommandUtils.createFile(path, fileContent);
