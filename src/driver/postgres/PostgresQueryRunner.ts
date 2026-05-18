@@ -424,6 +424,13 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
             });
         }
 
+        // SET STATISTICS can't ride inside CREATE TABLE; emit as follow-up ALTERs.
+        table.columns
+            .filter(column => column.statisticsTarget != null)
+            .forEach(column => {
+                upQueries.push(new Query(`ALTER TABLE ${this.escapePath(table)} ALTER COLUMN "${column.name}" SET STATISTICS ${column.statisticsTarget}`));
+            });
+
         await this.executeQueries(upQueries, downQueries);
     }
 
@@ -628,6 +635,10 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
         if (column.comment) {
             upQueries.push(new Query(`COMMENT ON COLUMN ${this.escapePath(table)}."${column.name}" IS ${this.escapeComment(column.comment)}`));
             downQueries.push(new Query(`COMMENT ON COLUMN ${this.escapePath(table)}."${column.name}" IS ${this.escapeComment(column.comment)}`));
+        }
+
+        if (column.statisticsTarget != null) {
+            upQueries.push(new Query(`ALTER TABLE ${this.escapePath(table)} ALTER COLUMN "${column.name}" SET STATISTICS ${column.statisticsTarget}`));
         }
 
         await this.executeQueries(upQueries, downQueries);
@@ -851,6 +862,14 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
             if (oldColumn.comment !== newColumn.comment) {
                 upQueries.push(new Query(`COMMENT ON COLUMN ${this.escapePath(table)}."${oldColumn.name}" IS ${this.escapeComment(newColumn.comment)}`));
                 downQueries.push(new Query(`COMMENT ON COLUMN ${this.escapePath(table)}."${newColumn.name}" IS ${this.escapeComment(oldColumn.comment)}`));
+            }
+
+            if (oldColumn.statisticsTarget !== newColumn.statisticsTarget) {
+                // pg attstattarget: -1 = cluster default. map null/undefined to -1 so clearing an override emits the right reset.
+                const upTarget = newColumn.statisticsTarget == null ? -1 : newColumn.statisticsTarget;
+                const downTarget = oldColumn.statisticsTarget == null ? -1 : oldColumn.statisticsTarget;
+                upQueries.push(new Query(`ALTER TABLE ${this.escapePath(table)} ALTER COLUMN "${newColumn.name}" SET STATISTICS ${upTarget}`));
+                downQueries.push(new Query(`ALTER TABLE ${this.escapePath(table)} ALTER COLUMN "${oldColumn.name}" SET STATISTICS ${downTarget}`));
             }
 
             if (newColumn.isPrimary !== oldColumn.isPrimary) {
@@ -1471,7 +1490,8 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
             SELECT columns.*,
               pg_catalog.col_description(('"' || table_catalog || '"."' || table_schema || '"."' || table_name || '"')::regclass::oid, ordinal_position) AS description,
               ('"' || "udt_schema" || '"."' || "udt_name" || '"')::"regtype" AS "regtype",
-              pg_catalog.format_type("col_attr"."atttypid", "col_attr"."atttypmod") AS "format_type"
+              pg_catalog.format_type("col_attr"."atttypid", "col_attr"."atttypmod") AS "format_type",
+              "col_attr"."attstattarget" AS "statistics_target"
               FROM "information_schema"."columns"
               LEFT JOIN "pg_catalog"."pg_attribute" AS "col_attr"
               ON "col_attr"."attname" = "columns"."column_name"
@@ -1696,6 +1716,10 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
                         tableColumn.charset = dbColumn["character_set_name"];
                     if (dbColumn["collation_name"])
                         tableColumn.collation = dbColumn["collation_name"];
+                    // pg attstattarget: -1 = cluster default. only carry an explicit override into the model so the diff doesn't fire on every column.
+                    if (dbColumn["statistics_target"] != null && Number(dbColumn["statistics_target"]) >= 0) {
+                        tableColumn.statisticsTarget = Number(dbColumn["statistics_target"]);
+                    }
                     return tableColumn;
                 }));
 

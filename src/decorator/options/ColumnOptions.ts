@@ -171,4 +171,13 @@ export interface ColumnOptions extends ColumnCommonOptions {
      * SRID (Spatial Reference ID (EPSG code))
      */
     srid?: number;
+
+    /**
+     * HEX: Per-column planner statistics target. Postgres only.
+     * Maps to `ALTER TABLE ... ALTER COLUMN ... SET STATISTICS N`. Controls how many
+     * rows ANALYZE samples for this column's histogram (cluster default is typically 100).
+     * Use a higher value (e.g. 1000) on hot predicate columns where the cluster default
+     * undercounts `n_distinct` and causes plan instability.
+     */
+    statisticsTarget?: number;
 }
