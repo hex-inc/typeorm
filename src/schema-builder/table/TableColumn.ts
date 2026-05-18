@@ -140,6 +140,13 @@ export class TableColumn {
      */
     srid?: number;
 
+    /**
+     * HEX: Per-column planner statistics target. Postgres only.
+     * Maps to `ALTER TABLE ... ALTER COLUMN ... SET STATISTICS N`. Stored in
+     * `pg_attribute.attstattarget`. -1 means cluster default (the postgres convention).
+     */
+    statisticsTarget?: number | null;
+
     // -------------------------------------------------------------------------
     // Constructor
     // -------------------------------------------------------------------------
@@ -171,6 +178,7 @@ export class TableColumn {
             this.generatedType = options.generatedType;
             this.spatialFeatureType = options.spatialFeatureType;
             this.srid = options.srid;
+            this.statisticsTarget = options.statisticsTarget;
         }
     }
 
@@ -207,7 +215,8 @@ export class TableColumn {
             isArray: this.isArray,
             comment: this.comment,
             spatialFeatureType: this.spatialFeatureType,
-            srid: this.srid
+            srid: this.srid,
+            statisticsTarget: this.statisticsTarget
         });
     }
 

@@ -30,7 +30,8 @@ export class TableUtils {
             enum: columnMetadata.enum ? columnMetadata.enum.map(val => val + "") : columnMetadata.enum,
             enumName: columnMetadata.enumName,
             spatialFeatureType: columnMetadata.spatialFeatureType,
-            srid: columnMetadata.srid
+            srid: columnMetadata.srid,
+            statisticsTarget: columnMetadata.statisticsTarget
         };
     }
 

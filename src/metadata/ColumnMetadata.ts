@@ -306,6 +306,12 @@ export class ColumnMetadata {
      */
     srid?: number;
 
+    /**
+     * HEX: Per-column planner statistics target. Postgres only.
+     * Maps to `ALTER TABLE ... ALTER COLUMN ... SET STATISTICS N`.
+     */
+    statisticsTarget?: number;
+
     // ---------------------------------------------------------------------
     // Constructor
     // ---------------------------------------------------------------------
@@ -406,6 +412,8 @@ export class ColumnMetadata {
             this.spatialFeatureType = options.args.options.spatialFeatureType;
         if (options.args.options.srid !== undefined)
             this.srid = options.args.options.srid;
+        if (options.args.options.statisticsTarget !== undefined)
+            this.statisticsTarget = options.args.options.statisticsTarget;
         if (this.isTreeLevel)
             this.type = options.connection.driver.mappedDataTypes.treeLevel;
         if (this.isCreateDate) {
