@@ -302,6 +302,11 @@ export class PostgresDriver implements Driver {
      * Makes any action after connection (e.g. create extensions in Postgres driver).
      */
     async afterConnect(): Promise<void> {
+        const installExtensions = this.options.installExtensions !== false;
+        if (!installExtensions) {
+            return Promise.resolve();
+        }
+
         const extensionsMetadata = await this.checkMetadataForExtensions();
 
         if (extensionsMetadata.hasExtensions) {

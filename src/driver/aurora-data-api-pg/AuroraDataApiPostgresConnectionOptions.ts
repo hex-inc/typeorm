@@ -25,6 +25,11 @@ export interface AuroraDataApiPostgresConnectionOptions extends BaseConnectionOp
      */
     readonly uuidExtension?: "pgcrypto" | "uuid-ossp";
 
+    /**
+     * Automatically install postgres extensions required by entity metadata.
+     * Defaults to true.
+     */
+    readonly installExtensions?: boolean;
 
     /*
     * Function handling errors thrown by drivers pool.
