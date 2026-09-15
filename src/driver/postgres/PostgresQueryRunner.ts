@@ -1724,7 +1724,7 @@ export class PostgresQueryRunner extends BaseQueryRunner implements QueryRunner 
                 return new TableCheck({
                     name: constraint["constraint_name"],
                     columnNames: checks.map(c => c["column_name"]),
-                    expression: constraint["expression"].replace(/^\s*CHECK\s*\((.*)\)\s*$/i, "$1")
+                    expression: constraint["expression"].replace(/^\s*CHECK\s*\(([\s\S]*)\)\s*$/i, "$1")
                 });
             });
 
