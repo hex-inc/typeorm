@@ -137,4 +137,12 @@ export interface TableColumnOptions {
      * SRID (Spatial Reference ID (EPSG code))
      */
     srid?: number;
+
+    /**
+     * HEX: Per-column planner statistics target. Postgres only.
+     * Maps to `ALTER TABLE ... ALTER COLUMN ... SET STATISTICS N`, which controls how many
+     * rows ANALYZE samples for this column's histogram (cluster default is typically 100).
+     * Use -1 to revert to the cluster default. Stored in `pg_attribute.attstattarget`.
+     */
+    statisticsTarget?: number | null;
 }
